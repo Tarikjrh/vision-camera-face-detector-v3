@@ -112,3 +112,34 @@ export function scanFaces(frame: Frame, options?: FaceDetectionOptions): Face {
   // @ts-ignore
   return plugin.call(frame, options);
 }
+
+export function frameResize(
+  faces: any[],
+  frameHeight: number,
+  frameWidth: number,
+  viewHeight: number,
+  viewWidth: number
+) {
+  if (!faces[0]) return;
+
+  const ratio = frameHeight / viewHeight;
+  const pixelDiff = (frameWidth / ratio - viewWidth) / 2;
+  const faceWidth = faces[0]?.bounds.width / ratio;
+  const faceHeight = faces[0]?.bounds.height / ratio;
+  let faceTop = faces[0]?.bounds.boundingCenterY / ratio;
+  faceTop = faceTop - faceHeight / 2;
+  let faceLeft = faces[0]?.bounds.boundingCenterX / ratio - pixelDiff;
+  faceLeft = faceLeft - faceWidth / 2;
+
+  const faceData = {
+    width: faceWidth,
+    height: faceHeight,
+    top: faceTop,
+    left: faceLeft,
+  };
+
+  const fixedBounds = { ...faces[0]?.bounds, ...faceData };
+  const fixedFace = { ...faces[0], bounds: fixedBounds };
+
+  return fixedFace;
+}
