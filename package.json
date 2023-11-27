@@ -1,6 +1,6 @@
 {
-  "name": "vision-camera-face-detection-v3",
-  "version": "1.1.0",
+  "name": "vision-camera-face-detector-v3",
+  "version": "1.1.1",
   "description": "VisionCamera Frame Processor Plugin to detect faces using MLKit Vision Face Detector for react native vision camera V3",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -35,14 +35,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com"
+    "url": "https://github.com/Tarikjrh/vision-camera-face-detector-v3"
   },
   "author": "Tarik",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com"
+    "url": "https://github.com/Tarikjrh/vision-camera-face-detector-v3"
   },
-  "homepage": "https://github.com",
+  "homepage": "https://github.com/Tarikjrh/vision-camera-face-detector-v3",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
