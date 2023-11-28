@@ -95,5 +95,6 @@ export interface FaceDetectionOptions {
     trackingEnabled?: boolean;
 }
 export declare function scanFaces(frame: Frame, options?: FaceDetectionOptions): Face;
+export declare function frameResize(faces: any[], frameHeight: number, frameWidth: number, viewHeight: number, viewWidth: number): any;
 export {};
 //# sourceMappingURL=index.d.ts.map
