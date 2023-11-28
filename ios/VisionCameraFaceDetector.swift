@@ -134,13 +134,12 @@ public class VisionCameraFaceDetector: FrameProcessorPlugin {
     
     public override func callback(_ frame: Frame, withArguments arguments: [AnyHashable: Any]?) -> Any {
         let config = getConfig(withArguments: arguments)
-        if faceDetector == nil {
+        // if faceDetector == nil {
             initFD(config: config)
-        }
+        // }
         let image = VisionImage(buffer: frame.buffer)
         let photoWidth = MLImage(sampleBuffer: frame.buffer)?.width
         image.orientation = .up
-        
         var faceAttributes: [Any] = []
         
         do {
@@ -151,12 +150,12 @@ public class VisionCameraFaceDetector: FrameProcessorPlugin {
                     map["rollAngle"] = face.headEulerAngleZ  // Head is tilted sideways rotZ degrees
                     map["pitchAngle"] = face.headEulerAngleX  // Head is rotated to the uptoward rotX degrees
                     map["yawAngle"] = face.headEulerAngleY   // Head is rotated to the right rotY degrees
-                    // map["leftEyeOpenProbability"] = face.leftEyeOpenProbability
-                    // map["rightEyeOpenProbability"] = face.rightEyeOpenProbability
-                    // map["smilingProbability"] = face.smilingProbability
+                    map["leftEyeOpenProbability"] = face.leftEyeOpenProbability
+                    map["rightEyeOpenProbability"] = face.rightEyeOpenProbability
+                    map["smilingProbability"] = face.smilingProbability
                     map["bounds"] = processBoundingBox(from: face, photoWidth: photoWidth)
                     // map["contours"] = processContours(from: face)
-                    // map["landMarks"] = processLandMarks(from: face)
+                    map["landMarks"] = processLandMarks(from: face)
                     
                     faceAttributes.append(map)
                 }
@@ -170,35 +169,44 @@ public class VisionCameraFaceDetector: FrameProcessorPlugin {
     
     func initFD(config: [String:Any]?) {
         let options = FaceDetectorOptions()
-        
-        
-        // if config?["landmarkMode"] as? String == "all" {
             options.landmarkMode = .none
-        // }
-        
-        // if config?["contourMode"] as? String == "all" {
             options.contourMode = .none
-        // }
+            options.performanceMode = .fast
+            options.classificationMode = .none
+      
+
+        if config?["landmarkMode"] as? String == "all" {
+            options.landmarkMode = .all
+        }
         
-        // if config?["performanceMode"] as? String == "accurate" {
+        if config?["contourMode"] as? String == "all" {
+            options.contourMode = .all
+        }
+        
+        if config?["faceDetectorMode"] as? String == "accurate" {
             // doesn't work in fast mode!, why?
             options.performanceMode = .accurate
-        // }
+        }
         
-        // if config?["classificationMode"] as? String == "all" {
-            options.classificationMode = .none
-        // }
+        if config?["classificationMode"] as? String == "all" {
+            options.classificationMode = .all
+        }
         
-        // if config?["minFaceSize"] as? Double != nil {
+        if config?["minFaceSize"] as? Double != nil {
             options.minFaceSize = CGFloat(config?["minFaceSize"] as? Double ?? 0.1)
-        // }
+        }
        
         faceDetector = FaceDetector.faceDetector(options: options)
     }
     
     func getConfig(withArguments arguments: [AnyHashable: Any]!) -> [String:Any]! {
            if arguments.count > 0 {
-               let config = arguments[0] as? [String:Any]
+            let config = arguments.map { dictionary in
+                Dictionary(uniqueKeysWithValues: dictionary.map { (key, value) in
+                    (key as? String ?? "", value)
+                })
+            }
+              //  let config = arguments[0] as? [String:Any]
                return config
            }
            return nil
