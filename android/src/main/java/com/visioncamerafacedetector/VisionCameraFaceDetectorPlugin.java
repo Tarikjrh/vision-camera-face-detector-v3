@@ -32,14 +32,7 @@ import com.google.mlkit.vision.face.FaceDetection;
 import com.google.mlkit.vision.face.FaceDetector;
 
 public class VisionCameraFaceDetectorPlugin extends FrameProcessorPlugin {
-  
-  FaceDetectorOptions options =
-    new FaceDetectorOptions.Builder()
-      .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST )
-      .setMinFaceSize(0.15f)
-      .build();    
 
-  FaceDetector faceDetector = FaceDetection.getClient(options);
 
   private WritableMap processBoundingBox(Rect boundingBox) {
     WritableMap bounds = Arguments.createMap();
@@ -67,13 +60,102 @@ public class VisionCameraFaceDetectorPlugin extends FrameProcessorPlugin {
     return bounds;
   }
 
- 
+
+  
+ private WritableMap processFaceContours(Face face) {
+   int[] faceContoursTypes =
+      new int[] {
+        FaceContour.FACE,
+        FaceContour.LEFT_EYEBROW_TOP,
+        FaceContour.LEFT_EYEBROW_BOTTOM,
+        FaceContour.RIGHT_EYEBROW_TOP,
+        FaceContour.RIGHT_EYEBROW_BOTTOM,
+        FaceContour.LEFT_EYE,
+        FaceContour.RIGHT_EYE,
+        FaceContour.UPPER_LIP_TOP,
+        FaceContour.UPPER_LIP_BOTTOM,
+        FaceContour.LOWER_LIP_TOP,
+        FaceContour.LOWER_LIP_BOTTOM,
+        FaceContour.NOSE_BRIDGE,
+        FaceContour.NOSE_BOTTOM,
+        FaceContour.LEFT_CHEEK,
+        FaceContour.RIGHT_CHEEK
+      };
+
+    String[] faceContoursTypesStrings = {
+        "FACE",
+        "LEFT_EYEBROW_TOP",
+        "LEFT_EYEBROW_BOTTOM",
+        "RIGHT_EYEBROW_TOP",
+        "RIGHT_EYEBROW_BOTTOM",
+        "LEFT_EYE",
+        "RIGHT_EYE",
+        "UPPER_LIP_TOP",
+        "UPPER_LIP_BOTTOM",
+        "LOWER_LIP_TOP",
+        "LOWER_LIP_BOTTOM",
+        "NOSE_BRIDGE",
+        "NOSE_BOTTOM",
+        "LEFT_CHEEK",
+        "RIGHT_CHEEK"
+      };
+
+
+    WritableMap faceContoursTypesMap = new WritableNativeMap();
+
+    for (int i = 0; i < faceContoursTypesStrings.length; i++) {
+        FaceContour contour = face.getContour(faceContoursTypes[i]);
+        List<PointF> points = contour.getPoints();
+        WritableNativeArray pointsArray = new WritableNativeArray();
+
+        for (int j = 0; j < points.size(); j++) {
+            WritableMap currentPointsMap = new WritableNativeMap();
+            currentPointsMap.putDouble("x", points.get(j).x);
+            currentPointsMap.putDouble("y", points.get(j).y);
+            pointsArray.pushMap(currentPointsMap);
+        }
+        faceContoursTypesMap.putArray(faceContoursTypesStrings[contour.getFaceContourType() - 1], pointsArray);
+    }
+
+    return faceContoursTypesMap;
+}
+
 
   @Override
   public Object callback(@NonNull Frame frame, @Nullable Map<String, Object> params) {
   // public Object callback(@NonNull ImageProxy frame, @Nullable Map<String, Object> params) {
     Image mediaImage = frame.getImage();
 
+    Integer performanceModeValue = 1;
+    if(String.valueOf(params.get("performanceMode")).equals("accurate")){
+      performanceModeValue = 2;
+    }
+
+    Integer classificationModeValue = 1;
+    if(String.valueOf(params.get("classificationMode")).equals("all")){
+      classificationModeValue = 2;
+    }
+
+    Integer contourModeValue = 1;
+    if(String.valueOf(params.get("contourMode")).equals("all")){
+      contourModeValue = 2;
+    }
+
+
+    FaceDetectorOptions options =
+    new FaceDetectorOptions.Builder()
+      .setPerformanceMode(performanceModeValue)
+      .setContourMode(contourModeValue)
+      .setClassificationMode(classificationModeValue)
+      .setMinFaceSize(0.15f)
+      .build();
+    
+    FaceDetector faceDetector = FaceDetection.getClient(options);
+
+
+
+
+  
     if (mediaImage != null) {
       InputImage image = InputImage.fromMediaImage(mediaImage, 0);
       Task<List<Face>> task = faceDetector.process(image);
@@ -86,13 +168,21 @@ public class VisionCameraFaceDetectorPlugin extends FrameProcessorPlugin {
           map.putDouble("rollAngle", face.getHeadEulerAngleZ()); // Head is rotated to the left rotZ degrees
           map.putDouble("pitchAngle", face.getHeadEulerAngleX()); // Head is rotated to the right rotX degrees
           map.putDouble("yawAngle", face.getHeadEulerAngleY());  // Head is tilted sideways rotY degrees
-    
-          
+        
+        if( String.valueOf(params.get("classificationMode")).equals("all")){
+          map.putDouble("leftEyeOpenProbability", face.getLeftEyeOpenProbability());
+          map.putDouble("rightEyeOpenProbability", face.getRightEyeOpenProbability());
+          map.putDouble("smilingProbability", face.getSmilingProbability());
+        }
 
+        if(String.valueOf(params.get("contourMode")).equals("all")){
+          WritableMap contours = processFaceContours(face);
+          map.putMap("contours", contours);
+        }
+         
           WritableMap bounds = processBoundingBox(face.getBoundingBox());
-
           map.putMap("bounds", bounds);
-
+       
           array.pushMap(map);
         }
         return array.toString();
@@ -106,6 +196,5 @@ public class VisionCameraFaceDetectorPlugin extends FrameProcessorPlugin {
 
   VisionCameraFaceDetectorPlugin(@Nullable Map<String, Object> options) {
     super(options);
-    Log.d("VisionCameraFaceDetectorPlugin", "VisionCameraFaceDetectorPlugin initialized with options: " + options);
   }
 }
